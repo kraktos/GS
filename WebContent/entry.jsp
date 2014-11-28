@@ -1,3 +1,4 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <meta name="keywords" content="" />
 <meta name="description" content="" />
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -30,6 +31,7 @@
 				<td>KB Relation</td>
 				<td>Is direct Relation?</td>
 				<td>Evaluation</td>
+				<td>&nbsp;</td>
 			</tr>
 			<tr>
 				<td><%=request.getAttribute("oieRel") != null ? request
@@ -45,14 +47,21 @@
 				<%
 					if (request.getAttribute("oieEval") != null) {
 				%>
-				<td><input type="text" name="evalText" id="evalTextId"
-					value="<%=request.getAttribute("oieEval")%>"></td>
+				<td><input type="text" name="evalText" maxlength="4" size="4"
+					id="evalTextId" value="<%=request.getAttribute("oieEval")%>"></td>
 
 				<%
-					}
+					}else{
 				%>
+				<td>&nbsp;</td>
+
+				<%} %>
+				<td><input type="submit" class="submit" title="Search"
+					value="Next"></td>
+
 			</tr>
-			<input type="submit" class="submit" title="Search" value="Next">
+
+
 
 		</table>
 
