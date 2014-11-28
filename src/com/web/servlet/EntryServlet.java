@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class EntryServlet extends HttpServlet {
 	public static final String GET_ANNO_PROPERTIES = "SELECT PHRASE, KB_PROP, EVAL, INV FROM OIE_PROP_GS where EVAL = '' limit 1;";
+	public static final String UPDATE_ANNO_PROPERTIES = "update OIE_PROP_GS set EVAL=? where PHRASE=? and KB_PROP=? and INV=?;";
 
 	// DB connection instance, one per servlet
 	static Connection connection = null;
@@ -33,6 +34,14 @@ public class EntryServlet extends HttpServlet {
      * 
      */
 	private static final long serialVersionUID = 1L;
+
+	private String oieRel;
+
+	private String kbRel;
+
+	private String oieEval;
+
+	private String oieDirection;
 
 	/**
 	 * Constructor of the object.
@@ -67,30 +76,75 @@ public class EntryServlet extends HttpServlet {
 			throws ServletException, IOException {
 
 		String evaluation = null;
+		List<List<String>> values = null;
 
-		if (request.getParameter("evalText") != null) {
-			evaluation = request.getParameter("evalText");
-			System.out.println(evaluation);
+		if (request.getParameter("evalText") == null) {
+			System.out.println("loading mode");
+
+			// get some fresh data
+			fetch(request);
+
+		} else if (request.getParameter("evalText") != null
+				&& request.getParameter("evalText").length() == 0) {
+			System.out.println("fetching mode");
 		}
 
+		else if (request.getParameter("evalText") != null
+				&& request.getParameter("evalText").length() > 0) {
+
+			System.out.println("saving mode");
+			evaluation = request.getParameter("evalText");
+			// save the values obtained
+			System.out.println("Should save " + oieRel + ", " + kbRel + ", "
+					+ evaluation + ", " + oieDirection);
+
+			init(UPDATE_ANNO_PROPERTIES);
+			saveToDB(oieRel, kbRel, evaluation, oieDirection);
+
+			// now fetch the next lot again...
+			fetch(request);
+		}
+
+		// redirect to page
+		request.getRequestDispatcher("entry.jsp").forward(request, response);
+	}
+
+	/**
+	 * @param request
+	 */
+	private void fetch(HttpServletRequest request) {
+		List<List<String>> values;
 		init(GET_ANNO_PROPERTIES);
+		values = getToBeAnnotatedProps();
 
-		List<List<String>> values = getToBeAnnotatedProps();
+		oieRel = values.get(0).get(0);
+		kbRel = values.get(0).get(1);
+		oieEval = values.get(0).get(2);
+		oieDirection = values.get(0).get(3);
 
-		String oieRel = values.get(0).get(0);
-		String kbRel = values.get(0).get(1);
-		String oieEval = values.get(0).get(2);
-		String oieDirection = values.get(0).get(3);
-
-		System.out.println(oieRel + "\t" + kbRel + "\t" + oieEval);
 		// for resetting the values
 		request.setAttribute("oieRel", oieRel);
 		request.setAttribute("kbRel", kbRel);
 		request.setAttribute("oieEval", oieEval);
 		request.setAttribute("oieDirection", oieDirection);
+	}
 
-		// redirect to page
-		request.getRequestDispatcher("entry.jsp").forward(request, response);
+	private void saveToDB(String oieRel, String kbRel, String evaluation,
+			String oieDirection) {
+
+		try {
+
+			pstmt.setString(1, evaluation);
+			pstmt.setString(2, oieRel);
+			pstmt.setString(3, kbRel);
+			pstmt.setString(4, oieDirection);
+
+			System.out.println(pstmt.toString());
+			pstmt.executeUpdate();
+			connection.commit();
+
+		} catch (SQLException e) {
+		}
 	}
 
 	public static List<List<String>> getToBeAnnotatedProps() {
