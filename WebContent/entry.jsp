@@ -1,4 +1,9 @@
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+
+<%@ page language="java" import="java.util.List" pageEncoding="UTF-8"%>
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
 <meta name="keywords" content="" />
 <meta name="description" content="" />
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -16,6 +21,7 @@
 			<div id="logo">
 				<h1 class=HEADLINE>smartMATCH</h1>
 				<h2 class=SUBHEADLINE>Gold Standard Annotator</h2>
+				<br> <br> <br> <br> <br>
 			</div>
 		</div>
 
@@ -24,16 +30,16 @@
 
 		<div id="error" style="color: #ff0000"></div>
 
-		<table>
+		<table align="center">
 
-			<tr>
-				<td>OIE Relation</td>
-				<td>KB Relation</td>
-				<td>Is direct Relation?</td>
-				<td>Evaluation</td>
+			<tr align="center">
+				<td><u></>OIE Relation</u></td>
+				<td><u>KB Relation</u></td>
+				<td><u>Is Inverse Relation</u>?</td>
+				<td><u>Evaluation</u></td>
 				<td>&nbsp;</td>
 			</tr>
-			<tr>
+			<tr align="center">
 				<td><%=request.getAttribute("oieRel") != null ? request
 					.getAttribute("oieRel") : ""%></td>
 
@@ -51,18 +57,42 @@
 					id="evalTextId" value="<%=request.getAttribute("oieEval")%>"></td>
 
 				<%
-					}else{
+					} else {
 				%>
 				<td>&nbsp;</td>
 
-				<%} %>
+				<%
+					}
+				%>
 				<td><input type="submit" class="submit" title="Search"
 					value="Next"></td>
 
 			</tr>
+		</table>
 
+		<table>
 
+			<tr>
+				<br><br>
+				<u>Example OIE triples</u>
+				<br><br>
+			</tr>
+			<%
+				List<String> values = (List<String>) request
+						.getAttribute("examples");
 
+				if (values != null) {
+			%>
+
+			<c:forEach items="<%=values%>" var="vari">
+				<tr>${vari}
+					<br>
+				</tr>
+			</c:forEach>
+
+			<%
+				}
+			%>
 		</table>
 
 	</form>

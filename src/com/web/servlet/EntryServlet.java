@@ -1,17 +1,24 @@
 package com.web.servlet;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Servlet class to handle requests for testing the matching performance
@@ -19,7 +26,7 @@ import javax.servlet.http.HttpServletResponse;
  * @author Arnab Dutta
  */
 public class EntryServlet extends HttpServlet {
-	public static final String GET_ANNO_PROPERTIES = "SELECT PHRASE, KB_PROP, EVAL, INV FROM OIE_PROP_GS where EVAL = '' limit 1;";
+	public static final String GET_ANNO_PROPERTIES = "SELECT PHRASE, KB_PROP, EVAL, INV FROM OIE_PROP_GS where EVAL = '' ORDER BY RAND() limit 1;";
 	public static final String UPDATE_ANNO_PROPERTIES = "update OIE_PROP_GS set EVAL=? where PHRASE=? and KB_PROP=? and INV=?;";
 
 	// DB connection instance, one per servlet
@@ -34,14 +41,17 @@ public class EntryServlet extends HttpServlet {
      * 
      */
 	private static final long serialVersionUID = 1L;
+	private static final String OIE_DATA_PATH = "/home/adutta/git/ESKoIE/src/main/resources/noDigitHighAll.csv";
 
 	private String oieRel;
+	private Map<String, List<Pair<String, String>>> ALL_OIE = new HashMap<String, List<Pair<String, String>>>();
 
 	private String kbRel;
 
 	private String oieEval;
 
 	private String oieDirection;
+	private int VALUE = 0;
 
 	/**
 	 * Constructor of the object.
@@ -80,13 +90,13 @@ public class EntryServlet extends HttpServlet {
 
 		if (request.getParameter("evalText") == null) {
 			System.out.println("loading mode");
-
 			// get some fresh data
 			fetch(request);
 
 		} else if (request.getParameter("evalText") != null
 				&& request.getParameter("evalText").length() == 0) {
 			System.out.println("fetching mode");
+
 		}
 
 		else if (request.getParameter("evalText") != null
@@ -114,6 +124,8 @@ public class EntryServlet extends HttpServlet {
 	 */
 	private void fetch(HttpServletRequest request) {
 		List<List<String>> values;
+		List<String> exampleList = new ArrayList<String>();
+
 		init(GET_ANNO_PROPERTIES);
 		values = getToBeAnnotatedProps();
 
@@ -122,24 +134,33 @@ public class EntryServlet extends HttpServlet {
 		oieEval = values.get(0).get(2);
 		oieDirection = values.get(0).get(3);
 
+		if (ALL_OIE.containsKey(oieRel))
+			for (Pair<String, String> p : ALL_OIE.get(oieRel)) {
+				System.out.println(p.getLeft() + "\t" + oieRel + "\t"
+						+ p.getRight());
+
+				exampleList.add(p.getLeft().toString() + "\t ==> \t" + oieRel
+						+ "\t ==> \t" + p.getRight().toString());
+			}
+
 		// for resetting the values
 		request.setAttribute("oieRel", oieRel);
 		request.setAttribute("kbRel", kbRel);
 		request.setAttribute("oieEval", oieEval);
 		request.setAttribute("oieDirection", oieDirection);
+		request.setAttribute("examples", exampleList);
 	}
 
 	private void saveToDB(String oieRel, String kbRel, String evaluation,
 			String oieDirection) {
 
 		try {
-
-			pstmt.setString(1, evaluation);
+			pstmt.setString(1, evaluation.toUpperCase().trim());
 			pstmt.setString(2, oieRel);
 			pstmt.setString(3, kbRel);
 			pstmt.setString(4, oieDirection);
 
-			System.out.println(pstmt.toString());
+			// System.out.println(pstmt.toString());
 			pstmt.executeUpdate();
 			connection.commit();
 
@@ -201,7 +222,37 @@ public class EntryServlet extends HttpServlet {
 	 *             if an error occurs
 	 */
 	public void init() throws ServletException {
-		// Put your code here
-	}
 
+		String rel = null;
+		String[] arr = null;
+		Pair<String, String> pair = null;
+		try {
+			List<String> oieTriples = FileUtils.readLines(new File(
+					OIE_DATA_PATH), "UTF-8");
+
+			List<Pair<String, String>> relInstances = null;
+			for (String oieTriple : oieTriples) {
+				arr = oieTriple.split(";");
+
+				rel = arr[1].toLowerCase().trim();
+				if (rel.indexOf("'m interested in") != -1)
+					System.out.println();
+
+				pair = new ImmutablePair<String, String>(arr[0].toLowerCase()
+						.trim(), arr[2].toLowerCase().trim());
+
+				if (ALL_OIE.containsKey(rel) && ALL_OIE.get(rel).size() <= 10) {
+					relInstances = ALL_OIE.get(rel);
+				} else {
+					relInstances = new ArrayList<Pair<String, String>>();
+				}
+				relInstances.add(pair);
+
+				ALL_OIE.put(rel, relInstances);
+			}
+
+			System.out.println("loaded " + ALL_OIE.size());
+		} catch (IOException e) {
+		}
+	}
 }
