@@ -71,11 +71,16 @@
 		</table>
 
 		<table>
-
 			<tr>
-				<br><br>
-				<u>Example OIE triples</u>
-				<br><br>
+				<br><br><br> <b>C</b>: Exactly <b>same</b> <br>
+						<b>G</b>: KB relation is <b>more general</b> than OIE relation<br>
+						<b>S</b>: KB relation is <b>more particular</b> than OIE relation<br>
+						<b>N</b>: <b>Incorrect</b> completely
+			</tr>
+		</table>
+		<table>
+			<tr>
+				<br><br> <u>Example OIE triples</u> <br><br>
 			</tr>
 			<%
 				List<String> values = (List<String>) request
@@ -94,7 +99,6 @@
 				}
 			%>
 		</table>
-
 	</form>
 </body>
 

@@ -51,7 +51,6 @@ public class EntryServlet extends HttpServlet {
 	private String oieEval;
 
 	private String oieDirection;
-	private int VALUE = 0;
 
 	/**
 	 * Constructor of the object.
@@ -96,7 +95,6 @@ public class EntryServlet extends HttpServlet {
 		} else if (request.getParameter("evalText") != null
 				&& request.getParameter("evalText").length() == 0) {
 			System.out.println("fetching mode");
-
 		}
 
 		else if (request.getParameter("evalText") != null
@@ -211,7 +209,6 @@ public class EntryServlet extends HttpServlet {
 
 		} catch (SQLException ex) {
 			ex.printStackTrace();
-
 		}
 	}
 
@@ -235,20 +232,18 @@ public class EntryServlet extends HttpServlet {
 				arr = oieTriple.split(";");
 
 				rel = arr[1].toLowerCase().trim();
-				if (rel.indexOf("'m interested in") != -1)
-					System.out.println();
-
 				pair = new ImmutablePair<String, String>(arr[0].toLowerCase()
 						.trim(), arr[2].toLowerCase().trim());
 
-				if (ALL_OIE.containsKey(rel) && ALL_OIE.get(rel).size() <= 10) {
+				if (ALL_OIE.containsKey(rel)) {
 					relInstances = ALL_OIE.get(rel);
 				} else {
 					relInstances = new ArrayList<Pair<String, String>>();
 				}
-				relInstances.add(pair);
-
-				ALL_OIE.put(rel, relInstances);
+				if (relInstances.size() <= 10) {
+					relInstances.add(pair);
+					ALL_OIE.put(rel, relInstances);					
+				}
 			}
 
 			System.out.println("loaded " + ALL_OIE.size());
