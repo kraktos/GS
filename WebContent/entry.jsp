@@ -33,27 +33,47 @@
 		<table align="center">
 
 			<tr align="center">
+				<td><u></>OIE Subject</u></td>
 				<td><u></>OIE Relation</u></td>
+				<td><u></>OIE Object</u></td>
+				
+				<td><u>KB Subject</u></td>
 				<td><u>KB Relation</u></td>
+				<td><u>KB Object</u></td>
+				
 				<td><u>Is Inverse Relation</u>?</td>
 				<td><u>Evaluation</u></td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr align="center">
-				<td><%=request.getAttribute("oieRel") != null ? request
-					.getAttribute("oieRel") : ""%></td>
+				<td><br><b><i><%=request.getAttribute("oieSub") != null ? request
+					.getAttribute("oieSub") : ""%></br> </i> </b></td>
 
-				<td><%=request.getAttribute("kbRel") != null ? request
-					.getAttribute("kbRel") : ""%></td>
+				<td><br><b><i><%=request.getAttribute("oieRel") != null ? request
+					.getAttribute("oieRel") : ""%></br> </i> </b></td>
+
+				<td><br><b><i><%=request.getAttribute("oieObj") != null ? request
+					.getAttribute("oieObj") : ""%></br> </i> </b></td>
 
 
-				<td><%=request.getAttribute("oieDirection") != null ? request
-					.getAttribute("oieDirection") : ""%></td>
+				<td><br><b><%=request.getAttribute("kbSub") != null ? request
+					.getAttribute("kbSub") : ""%></br> </b></td>
+
+				<td><br><b><%=request.getAttribute("kbRel") != null ? request
+					.getAttribute("kbRel") : ""%></br> </b></td>
+
+				<td><br><b><%=request.getAttribute("kbObj") != null ? request
+					.getAttribute("kbObj") : ""%></br> </b></td>
+
+
+				<td><br><b><%=request.getAttribute("oieDirection") != null ? ((request
+					.getAttribute("oieDirection").equals("N") ? "No" : "Yes"))
+					: ""%></br> </b></td>
 
 				<%
 					if (request.getAttribute("oieEval") != null) {
 				%>
-				<td><input type="text" name="evalText" maxlength="4" size="4"
+				<td><input type="text" name="evalText" maxlength="1" size="1"
 					id="evalTextId" value="<%=request.getAttribute("oieEval")%>"></td>
 
 				<%
@@ -72,10 +92,10 @@
 
 		<table>
 			<tr>
-				<br><br><br> <b>C</b>: Exactly <b>same</b> <br>
-						<b>G</b>: KB relation is <b>more general</b> than OIE relation<br>
-						<b>S</b>: KB relation is <b>more particular</b> than OIE relation<br>
-						<b>N</b>: <b>Incorrect</b> completely
+				<br><br><br> <b>Legend:</b> <br> <b>C</b>:
+								Exactly <b>same</b> <br> <b>G</b>: KB relation is <i>more
+										general</i> than OIE relation <br> <b>S</b>: KB relation is <i>more
+											particular</i> than OIE relation <br> <b>N</b>: Completely <i>incorrect</i>
 			</tr>
 		</table>
 		<table>

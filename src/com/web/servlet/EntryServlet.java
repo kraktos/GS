@@ -15,6 +15,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -26,17 +27,19 @@ import org.apache.commons.lang3.tuple.Pair;
  * @author Arnab Dutta
  */
 public class EntryServlet extends HttpServlet {
-	public static final String GET_ANNO_PROPERTIES = "SELECT PHRASE, KB_PROP, EVAL, INV FROM OIE_PROP_GS where EVAL = '' ORDER BY RAND() limit 1;";
-	public static final String UPDATE_ANNO_PROPERTIES = "update OIE_PROP_GS set EVAL=? where PHRASE=? and KB_PROP=? and INV=?;";
+	public static final String GET_ANNO_PROPERTIES = "SELECT OIE_SUB, OIE_REL, OIE_OBJ, KB_SUB, KB_REL, KB_OBJ, REL_EVAL, INVERSE FROM OIE_GS where REL_EVAL = '' ORDER BY RAND() limit 1;";
+	// "SELECT PHRASE, KB_PROP, EVAL, INV FROM OIE_PROP_GS where EVAL = '' ORDER BY RAND() limit 1;"
+	public static final String UPDATE_ANNO_PROPERTIES = "update OIE_GS set REL_EVAL=? where OIE_REL=? and KB_REL=? and INVERSE=?;";
 
 	// DB connection instance, one per servlet
 	static Connection connection = null;
 
-	// DBCOnnection
-	static DBConnection dbConnection = null;
+	// prepared statement instance
+	static PreparedStatement getPstmt = null;
 
 	// prepared statement instance
-	static PreparedStatement pstmt = null;
+	static PreparedStatement setPstmt = null;
+
 	/**
      * 
      */
@@ -44,9 +47,14 @@ public class EntryServlet extends HttpServlet {
 	private static final String OIE_DATA_PATH = "/home/adutta/git/ESKoIE/src/main/resources/noDigitHighAll.csv";
 
 	private String oieRel;
+	private String oieObj;
+	private String oieSub;
+
 	private Map<String, List<Pair<String, String>>> ALL_OIE = new HashMap<String, List<Pair<String, String>>>();
 
 	private String kbRel;
+	private String kbObj;
+	private String kbSub;
 
 	private String oieEval;
 
@@ -57,6 +65,7 @@ public class EntryServlet extends HttpServlet {
 	 */
 	public EntryServlet() {
 		super();
+		init(GET_ANNO_PROPERTIES, UPDATE_ANNO_PROPERTIES);
 	}
 
 	/**
@@ -106,7 +115,6 @@ public class EntryServlet extends HttpServlet {
 			System.out.println("Should save " + oieRel + ", " + kbRel + ", "
 					+ evaluation + ", " + oieDirection);
 
-			init(UPDATE_ANNO_PROPERTIES);
 			saveToDB(oieRel, kbRel, evaluation, oieDirection);
 
 			// now fetch the next lot again...
@@ -124,26 +132,36 @@ public class EntryServlet extends HttpServlet {
 		List<List<String>> values;
 		List<String> exampleList = new ArrayList<String>();
 
-		init(GET_ANNO_PROPERTIES);
 		values = getToBeAnnotatedProps();
 
-		oieRel = values.get(0).get(0);
-		kbRel = values.get(0).get(1);
-		oieEval = values.get(0).get(2);
-		oieDirection = values.get(0).get(3);
+		oieSub = values.get(0).get(0);
+		oieRel = values.get(0).get(1);
+		oieObj = values.get(0).get(2);
 
-		if (ALL_OIE.containsKey(oieRel))
-			for (Pair<String, String> p : ALL_OIE.get(oieRel)) {
-				System.out.println(p.getLeft() + "\t" + oieRel + "\t"
-						+ p.getRight());
+		kbSub = values.get(0).get(3);
+		kbRel = values.get(0).get(4);
+		kbObj = values.get(0).get(5);
+		oieEval = values.get(0).get(6);
+		oieDirection = values.get(0).get(7);
 
-				exampleList.add(p.getLeft().toString() + "\t ==> \t" + oieRel
-						+ "\t ==> \t" + p.getRight().toString());
-			}
+		// if (ALL_OIE.containsKey(oieRel))
+		// for (Pair<String, String> p : ALL_OIE.get(oieRel)) {
+		// System.out.println(p.getLeft() + "\t" + oieRel + "\t"
+		// + p.getRight());
+		//
+		// exampleList.add(p.getLeft().toString() + "\t ==> \t" + oieRel
+		// + "\t ==> \t" + p.getRight().toString());
+		// }
 
 		// for resetting the values
+		request.setAttribute("oieSub", oieSub);
 		request.setAttribute("oieRel", oieRel);
+		request.setAttribute("oieObj", oieObj);
+
+		request.setAttribute("kbSub", kbSub);
 		request.setAttribute("kbRel", kbRel);
+		request.setAttribute("kbObj", kbObj);
+
 		request.setAttribute("oieEval", oieEval);
 		request.setAttribute("oieDirection", oieDirection);
 		request.setAttribute("examples", exampleList);
@@ -153,13 +171,13 @@ public class EntryServlet extends HttpServlet {
 			String oieDirection) {
 
 		try {
-			pstmt.setString(1, evaluation.toUpperCase().trim());
-			pstmt.setString(2, oieRel);
-			pstmt.setString(3, kbRel);
-			pstmt.setString(4, oieDirection);
+			setPstmt.setString(1, evaluation.toUpperCase().trim());
+			setPstmt.setString(2, oieRel);
+			setPstmt.setString(3, kbRel);
+			setPstmt.setString(4, oieDirection);
 
 			// System.out.println(pstmt.toString());
-			pstmt.executeUpdate();
+			setPstmt.executeUpdate();
 			connection.commit();
 
 		} catch (SQLException e) {
@@ -171,7 +189,7 @@ public class EntryServlet extends HttpServlet {
 		List<String> row = null;
 		try {
 
-			ResultSet rs = pstmt.executeQuery();
+			ResultSet rs = getPstmt.executeQuery();
 
 			while (rs.next()) {
 				row = new ArrayList<String>();
@@ -179,6 +197,11 @@ public class EntryServlet extends HttpServlet {
 				row.add(rs.getString(2));
 				row.add(rs.getString(3));
 				row.add(rs.getString(4));
+				row.add(rs.getString(5));
+				row.add(rs.getString(6));
+				row.add(rs.getString(7));
+				row.add(rs.getString(8));
+
 				types.add(row);
 			}
 
@@ -193,17 +216,19 @@ public class EntryServlet extends HttpServlet {
 	 * initiates the connection parameters
 	 * 
 	 * @param sql
+	 * @param getSql
+	 * @param setSql
 	 */
-	public static void init(String sql) {
+	public static void init(String getSql, String setSql) {
 		try {
-			// instantiate the DB connection
-			dbConnection = new DBConnection();
+			DataSource ds = DBConn.getDataSource();
 
 			// retrieve the freshly created connection instance
-			connection = dbConnection.getConnection();
+			connection = ds.getConnection();
 
 			// create a statement
-			pstmt = connection.prepareStatement(sql);
+			getPstmt = connection.prepareStatement(getSql);
+			setPstmt = connection.prepareStatement(setSql);
 
 			connection.setAutoCommit(false);
 
@@ -242,7 +267,7 @@ public class EntryServlet extends HttpServlet {
 				}
 				if (relInstances.size() <= 10) {
 					relInstances.add(pair);
-					ALL_OIE.put(rel, relInstances);					
+					ALL_OIE.put(rel, relInstances);
 				}
 			}
 
