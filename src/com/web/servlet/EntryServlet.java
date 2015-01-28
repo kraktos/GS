@@ -29,7 +29,12 @@ import org.apache.commons.lang3.tuple.Pair;
 public class EntryServlet extends HttpServlet {
 	public static final String GET_ANNO_PROPERTIES = "SELECT OIE_SUB, OIE_REL, OIE_OBJ, KB_SUB, KB_REL, KB_OBJ, REL_EVAL, INVERSE FROM OIE_GS where REL_EVAL = '' ORDER BY RAND() limit 1;";
 	// "SELECT PHRASE, KB_PROP, EVAL, INV FROM OIE_PROP_GS where EVAL = '' ORDER BY RAND() limit 1;"
-	public static final String UPDATE_ANNO_PROPERTIES = "update OIE_GS set REL_EVAL=? where OIE_REL=? and KB_REL=? and INVERSE=?;";
+	// public static final String UPDATE_ANNO_PROPERTIES =
+	// "update OIE_GS set REL_EVAL=? where OIE_REL=? and KB_REL=? and INVERSE=?;";
+
+	public static final String DELETE_USED = "DELETE FROM OIE_GS where OIE_REL=? and KB_REL=? and INVERSE=?";
+
+	public static final String UPDATE_ANNO_PROPERTIES = "INSERT IGNORE INTO OIE_PROP_GS(PHRASE, KB_PROP,EVAL, INV) VALUES (?,?,?,?)";
 
 	// DB connection instance, one per servlet
 	static Connection connection = null;
@@ -39,6 +44,9 @@ public class EntryServlet extends HttpServlet {
 
 	// prepared statement instance
 	static PreparedStatement setPstmt = null;
+
+	// prepared statement instance
+	static PreparedStatement delPstmt = null;
 
 	/**
      * 
@@ -65,7 +73,7 @@ public class EntryServlet extends HttpServlet {
 	 */
 	public EntryServlet() {
 		super();
-		init(GET_ANNO_PROPERTIES, UPDATE_ANNO_PROPERTIES);
+		init(GET_ANNO_PROPERTIES, UPDATE_ANNO_PROPERTIES, DELETE_USED);
 	}
 
 	/**
@@ -171,13 +179,22 @@ public class EntryServlet extends HttpServlet {
 			String oieDirection) {
 
 		try {
-			setPstmt.setString(1, evaluation.toUpperCase().trim());
-			setPstmt.setString(2, oieRel);
-			setPstmt.setString(3, kbRel);
+
+			setPstmt.setString(1, oieRel);
+			setPstmt.setString(2, kbRel);
+			setPstmt.setString(3, evaluation.toUpperCase().trim());
 			setPstmt.setString(4, oieDirection);
 
 			// System.out.println(pstmt.toString());
 			setPstmt.executeUpdate();
+
+			// now delete the old stuff
+			delPstmt.setString(1, oieRel);
+			delPstmt.setString(2, kbRel);
+			delPstmt.setString(3, oieDirection);
+
+			delPstmt.executeUpdate();
+			
 			connection.commit();
 
 		} catch (SQLException e) {
@@ -219,7 +236,7 @@ public class EntryServlet extends HttpServlet {
 	 * @param getSql
 	 * @param setSql
 	 */
-	public static void init(String getSql, String setSql) {
+	public static void init(String getSql, String setSql, String delSql) {
 		try {
 			DataSource ds = DBConn.getDataSource();
 
@@ -229,6 +246,7 @@ public class EntryServlet extends HttpServlet {
 			// create a statement
 			getPstmt = connection.prepareStatement(getSql);
 			setPstmt = connection.prepareStatement(setSql);
+			delPstmt = connection.prepareStatement(delSql);
 
 			connection.setAutoCommit(false);
 
@@ -240,10 +258,15 @@ public class EntryServlet extends HttpServlet {
 	/**
 	 * Initialization of the servlet. <br>
 	 * 
+	 * @param deleteUsed
+	 * @param updateAnnoProperties
+	 * @param getAnnoProperties
+	 * 
 	 * @throws ServletException
 	 *             if an error occurs
 	 */
-	public void init() throws ServletException {
+	public void init(String getAnnoProperties, String updateAnnoProperties)
+			throws ServletException {
 
 		String rel = null;
 		String[] arr = null;
